@@ -1,14 +1,14 @@
 package fin.mineffecthud.mixin;
 
+import com.mojang.datafixers.util.Pair;
 import fin.mineffecthud.StatusEffectAttribute;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.Hud;
 import net.minecraft.core.Holder;
 import net.minecraft.util.Mth;
-import net.minecraft.util.Tuple;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import org.spongepowered.asm.mixin.Final;
@@ -22,7 +22,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.HashMap;
 import java.util.Map;
 
-@Mixin(Gui.class)
+@Mixin(Hud.class)
 public abstract class InGameHudMixin {
 
     @Shadow
@@ -31,7 +31,7 @@ public abstract class InGameHudMixin {
 
     // Pair<step, color>
     @Unique
-    private final Map<Holder<MobEffect>, Tuple<Integer, Integer>> STATUS_EFFECT_MAP = new HashMap<>();
+    private final Map<Holder<MobEffect>, Pair<Integer, Integer>> STATUS_EFFECT_MAP = new HashMap<>();
 
     @Inject(
             method = "extractEffects",
@@ -44,15 +44,15 @@ public abstract class InGameHudMixin {
     private void renderStatusEffectTimer(GuiGraphicsExtractor context, DeltaTracker tickCounter, CallbackInfo ci, @Local MobEffectInstance instance, @Local(ordinal = 2) int x, @Local(ordinal = 3) int y) {
         if (instance.isInfiniteDuration()) return;
 
-        final Tuple<Integer, Integer> p = STATUS_EFFECT_MAP.computeIfAbsent(
+        final Pair<Integer, Integer> p = STATUS_EFFECT_MAP.computeIfAbsent(
             instance.getEffect(),
             re -> createPair(instance)
         );
 
         final int drawX = x + 3;
         final int drawY = y + 21;
-        final int step = p.getA();
-        final int color = p.getB();
+        final int step = p.getFirst();
+        final int color = p.getSecond();
 
         context.fill(
                 drawX, drawY,
@@ -76,7 +76,7 @@ public abstract class InGameHudMixin {
     }
 
     @Unique
-    private Tuple<Integer, Integer> createPair(MobEffectInstance instance) {
+    private Pair<Integer, Integer> createPair(MobEffectInstance instance) {
         final StatusEffectAttribute attribute = StatusEffectAttribute.get(instance);
 
         final int duration = instance.getDuration();
@@ -85,7 +85,7 @@ public abstract class InGameHudMixin {
         final int step = getStep(duration, maxDuration, 18);
         final int color = getColor(duration, maxDuration);
 
-        return new Tuple<>(step, color);
+        return new Pair<>(step, color);
     }
 
     @Unique
